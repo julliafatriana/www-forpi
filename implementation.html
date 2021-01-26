@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FORPI | Forecasting Public API</title>
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/main.css" rel="stylesheet" >
+</head>
+<body class="text-center text-white">
+    <div class="cool-sky-bg d-flex w-100 h-100 p-3 mx-auto flex-column">
+        <header class="mb-auto">
+            <div class="nav-container">
+                <h3 class="float-md-start mb-0">FORPI</h3>
+                <nav class="nav nav-masthead justify-content-center float-md-end">
+                    <a class="nav-link" href="index.html">Home</a>
+                    <a class="nav-link active" aria-current="page" href="implementation.html">Implementation</a>
+                </nav>
+            </div>
+        </header>
+    </div>
+
+    <form id="searchForecast">
+        <div class="row align-items-center py-5 nav-container">
+            <div class="col-5">
+                <select class="form-select" id="provinceId" aria-label="Default select example">
+                    <option selected disabled>Choose Province</option>
+                </select>
+            </div>
+            <div class="col-5">
+                <select class="form-select" id="areaId" aria-label="Default select example">
+                    <option selected disabled>Choose Area</option>
+                </select>
+            </div>
+            <div class="col-2">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </div>
+    </form>
+
+    <div id="displayForecast" class="text-secondary text-right row align-items-center py-7 nav-container">
+        <div class="row">
+            <div class="col-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Min Temperature</h6>
+                        <h5 class="card-text" id="minTemperatureText">0</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Max Temperature</h6>
+                        <h5 class="card-text" id="maxTemperatureText">0</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Min Humidity</h6>
+                        <h5 class="card-text" id="minHumidityText">0</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Max Humidity</h6>
+                        <h5 class="card-text" id="maxHumidityText">0</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-5" >
+            <div class="col-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Temperature Daily</h6>
+                        <canvas id="temperatureDaily" width="400" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">Humidity Daily</h6>
+                        <canvas id="humidityDaily" width="400" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/js/chart.min.bundle.js"></script>
+    <script src="assets/js/custom.js"></script>
+    <script>
+        $('#displayForecast').hide();
+        let baseUrl = "https://api-bmkg.herokuapp.com";
+
+        $.ajax({
+            method: 'GET',
+            url: baseUrl+"/v1/forecasting/province"
+        }).done(function(res) {
+            res.data.sort(compare)
+            console.log(res.data.sort(compare));
+            for(p of res.data) {
+                $('#provinceId').append("<option value="+p.id+">"+p.name+"</option>")
+            }
+        });
+
+        $('#provinceId').change(function() {
+            let data = {
+                province: $(this).val()
+            };
+
+            $.ajax({
+                method: 'POST',
+                dataType: 'json',
+                url: baseUrl+"/v1/forecasting/area",
+                data: JSON.stringify(data)
+            }).done(function(res) {
+                $('#areaId').empty();
+                res.data.sort(compare)
+                for(a of res.data) {
+                    $('#areaId').append("<option value="+a.id+">"+a.area+"</option>")
+                }
+            });
+        });
+
+        $('#searchForecast').submit(function(e) {
+            e.preventDefault()
+            let provinceId = $('#provinceId').val();
+            let areaId = $('#areaId').val();
+
+            if(provinceId === null) {
+                alert(`Province can't be empty or null.`);
+                return
+            }
+            
+            let data = {
+                provinceId: provinceId,
+                areaId: areaId,
+            };
+
+            $.ajax({
+                method: 'POST',
+                dataType: 'json',
+                url: baseUrl+"/v1/forecasting/search/area",
+                data: JSON.stringify(data)
+            }).done(function(res) {
+                displayForecast(res.data)
+            })
+        });
+    </script>
+</body>
